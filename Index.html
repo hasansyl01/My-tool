@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Master Movie Sniper - Private Panel</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/font-awesome.min.css"/>
+    <style>
+        :root { --main: #E50914; --bg: #000; --card: #111; --text: #fff; --input: #222; }
+        body, html { background: var(--bg); color: var(--text); font-family: 'Segoe UI', sans-serif; margin: 0; padding: 0; min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+        #auth-panel { background: var(--card); padding: 40px 30px; border-radius: 20px; border: 2px solid var(--main); box-shadow: 0 0 50px rgba(229, 9, 20, 0.4); text-align: center; width: 90%; max-width: 380px; }
+        #main-app { display: none; width: 95%; max-width: 850px; margin: 20px auto; padding-bottom: 50px; }
+        .card { background: var(--card); padding: 25px; border-radius: 20px; border: 1px solid #222; box-shadow: 0 15px 50px rgba(229, 9, 20, 0.3); text-align: center; margin-bottom: 20px; }
+        h2 { color: var(--main); text-transform: uppercase; border-bottom: 1px solid #222; padding-bottom: 10px; font-size: 20px; margin-bottom: 25px; }
+        input, textarea { width: 100%; padding: 14px; margin: 10px 0; background: var(--input); border: 1.5px solid #333; color: #fff; border-radius: 12px; box-sizing: border-box; outline: none; text-align: center; font-size: 15px; }
+        .btn { background: var(--main); color: #fff; padding: 16px; border: none; border-radius: 12px; cursor: pointer; font-weight: bold; text-transform: uppercase; width: 100%; font-size: 14px; margin-top: 10px; transition: 0.3s; }
+        .btn:hover { background: #b20710; transform: translateY(-2px); }
+        .status-win { background: #1a1a1a; padding: 15px; border-radius: 12px; border: 1px solid #333; margin: 15px 0; font-size: 12px; color: #ffeb3b; text-align: left; display: none; line-height: 1.6; }
+        #tmdb-res { display: none; margin-top: 20px; }
+        .movie-opt { display: flex; align-items: center; gap: 15px; padding: 10px; background: #1a1a1a; margin-bottom: 8px; border-radius: 10px; cursor: pointer; border: 1px solid #333; text-align: left; }
+        .movie-opt img { width: 45px; height: 65px; border-radius: 5px; object-fit: cover; }
+        #preview-area { display: none; background: #0a0a0a; padding: 25px; border-radius: 20px; border: 1px solid #222; margin-top: 20px; text-align: left; }
+        .m-header { display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 20px; }
+        .m-poster { width: 130px; border-radius: 12px; border: 2px solid var(--main); }
+        .link-edit-row { display: flex; gap: 5px; margin-bottom: 8px; align-items: center; }
+        .link-edit-row input:first-child { width: 35%; background: #1a1a1a; color: #ffeb3b; font-weight: bold; }
+        .link-edit-row input:last-child { width: 65%; font-size: 11px; color: #00ff00; }
+        .crawler-box { background: #0a0a0a; border: 1px dashed var(--main); padding: 15px; border-radius: 15px; margin-bottom: 20px; display: none; }
+    </style>
+</head>
+<body>
+
+    <!-- পাসওয়ার্ড বক্স -->
+    <div id="auth-panel">
+        <i class="fa fa-user-shield" style="font-size: 50px; color: var(--main); margin-bottom: 20px;"></i>
+        <h2>Admin Access</h2>
+        <input type="password" id="p-input" placeholder="Password (aaa)">
+        <button class="btn" onclick="checkAuth()">Unlock Panel</button>
+    </div>
+
+    <!-- মেইন অ্যাপ্লিকেশন -->
+    <div id="main-app">
+        <div class="card">
+            <h2><i class="fa fa-crosshairs"></i> Master Sniper v101</h2>
+            
+            <div id="fetch-section">
+                <input id="site-url-input" type="text" value="https://new3.hdhub4u.fo/" />
+                <button class="btn" onclick="window.crawlLinks()"><i class="fa fa-list"></i> FETCH MOVIE LIST</button>
+            </div>
+
+            <div style="margin: 20px 0; color: #444;">--- OR ---</div>
+
+            <div id="snipe-section">
+                <input id="single-link-input" placeholder="Paste movie post link here..." type="text" />
+                <button class="btn" onclick="window.startSnipe()"><i class="fa fa-bolt"></i> START SNIPER</button>
+            </div>
+
+            <div id="crawler-ui" class="crawler-box">
+                <p style="font-size: 13px;">Next: <span id="q-title-display" style="color: #00e5ff;">...</span></p>
+                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                    <button class="btn" onclick="window.startSnipeFromQueue()" style="flex: 2; margin:0;">Process</button>
+                    <button class="btn" onclick="window.skipMovie()" style="flex: 1; margin:0; background: #444;">Skip</button>
+                </div>
+            </div>
+
+            <div id="status" class="status-win">Engine Standby.</div>
+            <div id="tmdb-res"></div>
+
+            <div id="preview-area">
+                <div class="m-header">
+                    <img id="mPoster" class="m-poster" src="">
+                    <div style="flex:1; min-width:250px;">
+                        <input id="mTitle" style="text-align:left; font-weight:bold; color:var(--main); background:transparent; border:none; border-bottom:1px solid #333;" type="text" />
+                        <p id="mMeta" style="font-size:12px; margin:5px 0;"><b>Genres:</b> ...</p>
+                        <p id="mRuntime" style="font-size:12px; margin:5px 0;"><b>Runtime:</b> ...</p>
+                        <p id="mActors" style="font-size:12px; margin:5px 0;"><b>Actors:</b> ...</p>
+                        <textarea id="mDesc" rows="4" style="text-align:left; font-size:13px;"></textarea>
+                    </div>
+                </div>
+                <div style="background:#111; padding:15px; border-radius:12px; border:1px solid #222;">
+                    <p style="color:var(--main); font-size:11px; font-weight:bold; margin-bottom:10px;">SHORTENED HubCloud LINKS:</p>
+                    <div id="links-editor-box"></div>
+                </div>
+                <button class="btn" style="background: #28a745; margin-top:20px;" onclick="window.publishToBlogger()">Publish Movie</button>
+            </div>
+        </div>
+    </div>
+
+<script src='https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js' type='text/javascript'></script>
+<script>
+// --- CONFIG ---
+const PASS = "aaa";
+const TMDB_KEY = "2ee7f79b3758fe0f9585cc4d2750ee39";
+const CUTY_API = "b5ab29de4aeb4d27877d680ab8ffe4934c164a03";
+const GROQ_KEY = "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";
+const labels = ["480p⚡[450MB]", "720p HEVC [790MB]", "720p x264 [1.1GB]", "1080p HEVC [1.7GB]", "1080p x264 [2.6GB]", "HQ 1080p [7GB]", "Remux [14GB]"];
+
+let movieQueue = [], qIdx = 0, snipedLinksData = [];
+
+function checkAuth() {
+    if(document.getElementById('p-input').value === PASS) {
+        document.getElementById('auth-panel').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        document.body.style.alignItems = 'flex-start';
+        document.body.style.overflow = 'auto';
+    } else { alert("ভুল পাসওয়ার্ড!"); }
+}
+
+function updateStatus(m){ const s = document.getElementById('status'); s.style.display = "block"; s.innerHTML += `<br>> ${m}`; }
+
+// ১. সাইট ক্রল
+window.crawlLinks = async () => {
+    const site = document.getElementById('site-url-input').value.trim();
+    updateStatus("Crawling site...");
+    try {
+        const res = await fetch(`https://r.jina.ai/${site}`);
+        const text = await res.text();
+        const matches = text.match(/https?:\/\/new3\.hdhub4u\.fo\/[^\s"']+\//gi) || [];
+        movieQueue = [...new Set(matches)].filter(l => !l.includes('/category/') && !l.includes('/genre/') && l.length > site.length + 5);
+        if(movieQueue.length > 0) {
+            document.getElementById('fetch-section').style.display = "none";
+            document.getElementById('snipe-section').style.display = "none";
+            document.getElementById('crawler-ui').style.display = "block";
+            window.updateQueueUI();
+            updateStatus(`${movieQueue.length} movies found!`);
+        }
+    } catch(e) { updateStatus("Crawl failed."); }
+};
+
+window.updateQueueUI = () => {
+    if(qIdx < movieQueue.length) {
+        document.getElementById('single-link-input').value = movieQueue[qIdx];
+        document.getElementById('q-title-display').innerText = movieQueue[qIdx].split('/').filter(Boolean).pop();
+    }
+};
+
+window.skipMovie = () => { qIdx++; window.updateQueueUI(); };
+
+// ২. স্নাইপার
+window.startSnipe = async () => {
+    const url = document.getElementById('single-link-input').value.trim();
+    if(!url) return;
+    document.getElementById('preview-area').style.display="none";
+    updateStatus("Reading Source...");
+    try {
+        const res = await fetch(`https://r.jina.ai/${url}`);
+        const html = await res.text();
+        const query = url.split('/').filter(Boolean).pop().replace(/-20\d{2}.*|hindi.*|dual.*|720p.*/gi, "").replace(/-/g, " ");
+        window.searchTMDB(query, html);
+    } catch(e) { updateStatus("Error."); }
+};
+
+window.startSnipeFromQueue = () => { window.startSnipe(); };
+
+window.searchTMDB = async (q, html) => {
+    const res = await fetch(`https://api.themoviedb.org/3/search/movie?api_key=${TMDB_KEY}&query=${encodeURIComponent(q)}`);
+    const data = await res.json();
+    const list = document.getElementById('tmdb-res');
+    list.innerHTML = ""; list.style.display = "block";
+    data.results.slice(0, 3).forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'movie-opt';
+        div.innerHTML = `<img src="https://image.tmdb.org/t/p/w92${m.poster_path}"><div><b>${m.title}</b> (${m.release_date})</div>`;
+        div.onclick = () => window.loadDetails(m.id, html);
+        list.appendChild(div);
+    });
+};
+
+window.loadDetails = async (id, html) => {
+    document.getElementById('tmdb-res').style.display = "none";
+    updateStatus("Fetching metadata...");
+    const res = await fetch(`https://api.themoviedb.org/3/movie/${id}?api_key=${TMDB_KEY}&append_to_response=credits`);
+    const d = await res.json();
+    document.getElementById('mPoster').src = `https://image.tmdb.org/t/p/w500${d.poster_path}`;
+    document.getElementById('mTitle').value = `${d.title} (${d.release_date.split('-')[0]}) Hindi WEB-DL`;
+    document.getElementById('mMeta').innerHTML = `<b>Genres:</b> ${d.genres.map(g=>g.name).join(', ')}`;
+    document.getElementById('mRuntime').innerHTML = `<b>Runtime:</b> ${d.runtime}m | <b>Rating:</b> ${d.vote_average}`;
+    document.getElementById('mActors').innerHTML = `<b>Actors:</b> ${d.credits.cast.slice(0,4).map(c=>c.name).join(', ')}`;
+    
+    try {
+        const groq = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST", headers: { "Authorization": `Bearer ${GROQ_KEY}`, "Content-Type": "application/json" },
+            body: JSON.stringify({ model: "llama-3.1-8b-instant", messages: [{ role: "user", content: `Review: ${d.title}. Plot: ${d.overview}. 80 words.` }] })
+        });
+        const gData = await groq.json();
+        document.getElementById('mDesc').value = gData.choices[0].message.content.trim();
+    } catch(e) { document.getElementById('mDesc').value = d.overview; }
+
+    document.getElementById('preview-area').style.display = "block";
+    window.extractAndShortenDeep(html);
+};
+
+// ৩. ডিপ স্নাইপার ফিক্স (Gadgetsweb/CryptoInsights)
+function superDecode(str) {
+    try {
+        let clean = decodeURIComponent(str).replace(/-/g, '+').replace(/_/g, '/');
+        let decoded = atob(clean);
+        if (decoded.includes("http")) return decoded;
+        return atob(decoded);
+    } catch(e) { return null; }
+}
+
+async function fetchInternal(url) {
+    try {
+        const res = await fetch("https://corsproxy.io/?" + encodeURIComponent(url));
+        return await res.text();
+    } catch(e) { return ""; }
+}
+
+window.extractAndShortenDeep = async (html) => {
+    const box = document.getElementById('links-editor-box');
+    box.innerHTML = "Deep Sniping HubCloud Links...";
+    const regex = /https?:\/\/[^\s"'<>\\)\*\_\[\\]]+/gi;
+    const allMatches = html.match(regex) || [];
+    let filtered = [...new Set(allMatches)].filter(l => l.includes("hubdrive") || l.includes("gadgetsweb") || l.includes("hublinks") || l.includes("hubcloud") || l.includes("crypto") || l.includes("id="));
+    
+    box.innerHTML = ""; snipedLinksData = [];
+    let count = 0, finalQueue = [];
+
+    for(let target of filtered) {
+        if (count >= labels.length) break;
+        let realLink = "";
+
+        if(target.includes("id=")) {
+            let rid = target.split("id=")[1].split("&")[0];
+            let dec = superDecode(rid);
+            if(dec && dec.includes("hublinks")) {
+                let m = dec.match(/https?:\/\/hublinks\.[^\s"']+/i);
+                if(m) {
+                    let h2 = await fetchInternal(m[0]);
+                    let hm = h2.match(/https?:\/\/(?:hubcloud|hubcloud\.foo)\/[^\s"']+/i);
+                    realLink = hm ? hm[0] : "";
+                }
+            } else if(dec && dec.includes("hubcloud")) {
+                realLink = dec.match(/https?:\/\/hubcloud\.[^\s"']+/i)[0];
+            }
+        } else if(target.includes("hubdrive")) {
+             let h2 = await fetchInternal(target);
+             let hm = h2.match(/https?:\/\/(?:hubcloud|hubcloud\.foo)\/[^\s"']+/i);
+             realLink = hm ? hm[0] : "";
+        } else if(target.includes("hubcloud")) { realLink = target; }
+
+        if(realLink && realLink.includes("hubcloud")) {
+            const label = labels[count];
+            box.innerHTML += `<div class="link-edit-row"><input type="text" id="label-${count}" value="${label}"><input type="text" id="url-${count}" value="⏳ Shortening..."></div>`;
+            finalQueue.push({ idx: count, url: realLink });
+            count++;
+        }
+    }
+
+    for (let item of finalQueue) {
+        try {
+            const api_url = `https://cuty.io/api?api=${CUTY_API}&url=${encodeURIComponent(item.url)}`;
+            const res = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(api_url)}`);
+            const data = await res.json();
+            const result = JSON.parse(data.contents);
+            document.getElementById(`url-${item.idx}`).value = (result && result.status === 'success') ? result.shortenedUrl : item.url;
+            snipedLinksData.push(item.idx);
+            await new Promise(r => setTimeout(r, 1000));
+        } catch(e) { document.getElementById(`url-${item.idx}`).value = item.url; snipedLinksData.push(item.idx); }
+    }
+    updateStatus("All Links Snapped!");
+};
+
+window.publishToBlogger = () => {
+    const title = document.getElementById('mTitle').value;
+    const poster = document.getElementById('mPoster').src;
+    const meta = document.getElementById('mMeta').innerHTML;
+    const runtime = document.getElementById('mRuntime').innerText;
+    const actors = document.getElementById('mActors').innerText;
+    const desc = document.getElementById('mDesc').value;
+    const cleanT = title.split('(')[0].trim();
+    let lHtml = "";
+    snipedLinksData.sort((a,b)=>a-b).forEach(i => {
+        const label = document.getElementById(`label-${i}`).value;
+        const url = document.getElementById(`url-${i}`).value;
+        lHtml += `<div style="background:rgb(26,26,26);border-radius:8px;border:1px solid #E50914;margin:20px 0;padding:15px;text-align:center;"><p style="color:#fff;font-weight:bold;margin-bottom:12px;font-size:16px;">${cleanT} ${label}</p><a href="${url}" style="background:#E50914;color:#fff;padding:12px 30px;border-radius:5px;text-decoration:none;font-weight:bold;display:inline-block;text-transform:uppercase;" target="_blank">Download Now</a></div>`;
+    });
+    const finalPost = `<div style="background:rgb(20,20,20);border-radius:10px;color:white;font-family:sans-serif;margin:auto;max-width:600px;padding:20px;text-align:center;"><img src="${poster}" style="border-radius:10px;border:1px solid rgb(51,51,51);max-width:100%;"/><h2 style="color:#e50914;font-size:22px;text-transform:uppercase;margin:20px 0;">${title}</h2><p style="color:#e50914;font-weight:bold;margin-bottom:5px;">${meta}</p><p style="color:#ccc;font-size:13px;margin-bottom:5px;">${runtime}</p><p style="color:#aaa;font-size:13px;margin-bottom:15px;">${actors}</p><div style="border-bottom:1px solid #333;margin:20px 0;"></div><p style="color:#bbbbbb;font-size:14px;line-height:1.6;text-align:justify;">${desc}</p><h3 style="background:rgb(229,9,20);border-radius:4px;color:white;font-size:16px;padding:8px;margin-top:30px;">DOWNLOAD LINKS</h3>${lHtml}</div>`;
+    window.open(`https://www.blogger.com/blog-this.g?n=${encodeURIComponent(title)}&b=${encodeURIComponent(finalPost)}`, '_blank');
+    qIdx++; window.updateQueueUI();
+    document.getElementById('preview-area').style.display = "none";
+};
+</script>
+</body>
+</html>
